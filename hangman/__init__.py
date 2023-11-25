@@ -1,22 +1,34 @@
-# __init__.py
-import os
+# hangman/__init__.py
+
 from flask import Flask
-from .models import db
-from .routes import configure_routes
+from flask_sqlalchemy import SQLAlchemy
+import os
 
-def create_app():
-    app = Flask(__name__)
+# Create a SQLAlchemy instance
+db = SQLAlchemy()
 
-    # Check if env.py file exists
-    env_file_path = os.path.join(os.path.dirname(__file__), 'env.py')
-    if os.path.exists(env_file_path):
-        app.config.from_pyfile('env.py')
+# Create the Flask app
+app = Flask(__name__)
 
-    db.init_app(app)
+# Load configuration from env.py or environment variables
+app.config.from_pyfile('env.py', silent=True)
 
-    with app.app_context():
-        db.create_all()
+# Configure the Flask app
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URL", "postgresql:///hangman")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    configure_routes(app)
+# Initialize the database
+db.init_app(app)
 
-    return app
+# Import routes to ensure they are registered with Flask
+from . import routes
+
+# Import models to ensure they are registered with SQLAlchemy
+from .models import HangmanWord
+
+# Create tables if not exists
+with app.app_context():
+    db.create_all()
+
+# Register routes with the app
+routes.configure_routes(app)
